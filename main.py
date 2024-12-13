@@ -24,17 +24,18 @@ class AppContext:
 
     def load_parser(self, log_type: str):
         """Load the appropriate log parser based on log type."""
-        # self.parser = BasicLogParser(self.db_manager, f"{log_type}_logs")
 
-        # self.parser = LogParserLookup(self.db_manager, f"{log_type}_logs", ["method", "filter_name", "username", "status", "bypassed", "client_ip", "mime", "cachecode", "peercode", "user_groups", "request_profiles", "response_profiles", "categories", "profiles", "download_content_types", "upload_content_types", "time_profiles", "application_signatures"])
-        self.parser = LogParserWithLookup(self.db_manager, f"{log_type}_logs", ["user_groups", "request_profiles", "response_profiles", "categories", "profiles", "download_content_types", "upload_content_types", "time_profiles", "application_signatures"])
+        if log_type == "extended":
+            # self.parser = BasicLogParser(self.db_manager, f"{log_type}_logs")
 
-        # self.parser = LogParserLookup(self.db_manager, f"{log_type}_logs", ["method", "filter_name", "username", "status", "bypassed", "client_ip", "mime", "cachecode", "peercode"])
+            self.parser = LogParserWithLookup(self.db_manager, f"{log_type}_logs", ["user_groups", "request_profiles", "response_profiles", "categories", "profiles", "download_content_types", "upload_content_types", "time_profiles", "application_signatures"])
 
-        # self.parser = LogParserLookup(self.db_manager, f"{log_type}_logs", ["method", "filter_name", "username", "bypassed"])
-        # self.parser = LogParserLookup(self.db_manager, f"{log_type}_logs", ["method", "profiles"])
+            # self.parser = LogParserLookup(self.db_manager, f"{log_type}_logs", ["method", "filter_name", "username", "status", "client_ip", "mime", "cachecode", "peercode"])
+
+        else:
+            self.parser = BasicLogParser(self.db_manager, f"{log_type}_logs")
         
-        self.parser.load_log_schema_with_lookup_initialisation(log_type, log_structure_path)
+        self.parser.load_log_schema(log_type, log_structure_path)
 
 pass_context = click.make_pass_decorator(AppContext, ensure=True)
 

@@ -77,6 +77,18 @@ class LogParser:
         # Skip the header line
         lines = lines[1:]
         
+        # # ## for testing 
+        # k = 0
+        # newlines = lines.copy()
+        # while(len(newlines) < 30000):
+        #     # print(len(newlines))
+        #     for line in lines:
+        #         newlines.append(f"{k}" + line)
+        #         k += 1
+        
+        # lines = newlines
+        # #### TEsting end here
+
         with ThreadPoolExecutor(max_workers=max_workers) as executor:
             with tqdm(total=len(lines), desc="Inserting log lines") as pbar:
                 futures = {executor.submit(self.insert_log, line.strip()): line.strip() for line in lines if line.strip()}
@@ -135,7 +147,6 @@ class BasicLogParser(LogParser):
 
     def load_log_schema(self, log_type: str, xml_file: str) -> None:
         super().load_log_schema(log_type, xml_file)
-        ####change from here
 
         self.set_table_schema()
         for col in self.table_schema:
@@ -146,8 +157,6 @@ class BasicLogParser(LogParser):
     
     def create_tables(self) -> None:
         self.database.create_table(self.main_table, self.table_schema)
-
-    ###till here
 
     def insert_log(self, log_line: str) -> None:
         # Parse the TSV string
@@ -200,19 +209,23 @@ class LogParserWithLookup(LogParser):
     def initialise_single_lookuptable(self, single_log_column: LogColumn):
         tables_name = self.database.fetch_table_names()
 
-        if single_log_column.name not in tables_name:
+        # if single_log_column.name not in tables_name:
+        if "lookuptable" not in tables_name:
             # creating new lookup table
-            self.database.create_table(single_log_column.name, self.lookuptable_schema)
+            # self.database.create_table(single_log_column.name, self.lookuptable_schema)
+            self.database.create_table("lookuptable", self.lookuptable_schema)
             lookupdict = {}
         else:
-            lookupdict: dict = self.database.fetch_lookup_table_as_dict(single_log_column.name, self.lookuptable_schema)
+            # lookupdict: dict = self.database.fetch_lookup_table_as_dict(single_log_column.name, self.lookuptable_schema)
+            lookupdict: dict = self.database.fetch_lookup_table_as_dict("lookuptable", self.lookuptable_schema)
 
         return lookupdict
     
     # initialise all lookup table and store it as dict of dict
     def initialise_lookuptables(self):
         for lookup_log_col in self.lookup_columns:
-            self.lookuptables[lookup_log_col.name] = self.initialise_single_lookuptable(lookup_log_col)
+            # self.lookuptables[lookup_log_col.name] = self.initialise_single_lookuptable(lookup_log_col)
+            self.lookuptables["lookuptable"] = self.initialise_single_lookuptable(lookup_log_col)
         return
 
     # get log column index and col
@@ -234,7 +247,7 @@ class LogParserWithLookup(LogParser):
                 self.lookup_columns.append(col)
         return
     
-    def load_log_schema_with_lookup_initialisation(self, log_type: str, xml_file: str) -> None:
+    def load_log_schema(self, log_type: str, xml_file: str) -> None:
         super().load_log_schema(log_type, xml_file)
         self.initialise_lookup()
         self.set_main_table_schema()
@@ -247,28 +260,34 @@ class LogParserWithLookup(LogParser):
     # handles single column and convert it to required type
     def update_single_column(self, value: Union[str, list], log_col: LogColumn):
 
-        col_dict: dict = self.lookuptables[log_col.name]
+        # col_dict: dict = self.lookuptables[log_col.name]
+        col_dict: dict = self.lookuptables["lookuptable"]
         if type(value) == str and not log_col.isArray:
             if value in col_dict.keys():
                 return col_dict[value]
             else:
-                self.lookuptables[log_col.name][value] = len(col_dict)
+                # self.lookuptables[log_col.name][value] = len(col_dict)
+                self.lookuptables["lookuptable"][value] = len(col_dict)
                 return len(col_dict)
         elif log_col.isArray:
             if type(value) == str:
                 if value in col_dict.keys():
                     return str(col_dict[value])
                 else:
-                    self.lookuptables[log_col.name][value] = len(col_dict)
+                    # self.lookuptables[log_col.name][value] = len(col_dict)
+                    self.lookuptables["lookuptable"][value] = len(col_dict)
                     return str(len(col_dict))
+                    
             else:
                 list_as_str_with_comma: str = ""
                 for val in value:
-                    col_dict: dict = self.lookuptables[log_col.name]
+                    # col_dict: dict = self.lookuptables[log_col.name]
+                    col_dict: dict = self.lookuptables["lookuptable"]
                     if val in col_dict.keys():
                         list_as_str_with_comma += (str(col_dict[val]) + ",")
                     else:
-                        self.lookuptables[log_col.name][val] = len(col_dict)
+                        # self.lookuptables[log_col.name][val] = len(col_dict)
+                        self.lookuptables["lookuptable"][val] = len(col_dict)
                         list_as_str_with_comma += (str(len(col_dict)) + ",")
                 
                 return list_as_str_with_comma[:-1] # leave last comma
