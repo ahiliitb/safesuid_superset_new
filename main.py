@@ -52,6 +52,7 @@ def cli(ctx: AppContext):
     dbname = config['database']['dbname']
     maxconns = config['database']['maxconns']
     ctx.db_manager = Database(username, password, host, port, dbname, maxconns)
+    ctx.db_manager.create_extension_for_timescaledb()
 
     ctx.configure_logging(applog_path)
 
@@ -121,6 +122,7 @@ def insert(ctx: AppContext, log_type: str, path: str, workers: int):
     ctx.parser.insert_log_files(log_files, workers)
 
     final_size = ctx.parser.database.get_database_size()
+
     # print(f"Size of database after insertion: {final_size}")
     print(f"Size increased: {(final_size - initial_size)//1024} KB")
     print("Logs inserted successfully.")

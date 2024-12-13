@@ -179,14 +179,29 @@ class DatabaseConnectionPool:
         lookup_dict = {row[0]: row[1] for row in results}
 
         return lookup_dict
-
-
+    
+    def get_timestamp_column(self, schema: List[TableColumn]):
+        for col in schema:
+            if col.datatype == "TIMESTAMP": return col.name
+        return None
+    
+    def create_extension_for_timescaledb(self):
+        query = "CREATE EXTENSION IF NOT EXISTS timescaledb;"
+        self.execute_command(query)
+        applog.logger.debug(f"TimeScaleDB Extension added!")
+    
     def create_table(self, table_name:str, schema: List[TableColumn]):
         """Creates a table with the given name and schema."""
 
+        timestamp_col = self.get_timestamp_column(schema)
         columns = ', '.join(str(col) for col in schema)
+
         query = f"CREATE TABLE {table_name} ({columns});"
+        query_hypertable = f"SELECT create_hypertable('{table_name}', '{timestamp_col}');"
+        
         self.execute_command(query)
+        if timestamp_col is not None: self.execute_command(query_hypertable)
+
         applog.logger.debug(f"Table {table_name} created successfully.")
     
     def insert_data(self, table_name: str, columns: List[TableColumn], values: Tuple) -> None:
